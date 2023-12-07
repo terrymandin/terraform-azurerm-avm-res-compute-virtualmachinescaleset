@@ -54,7 +54,8 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
       write_accelerator_enabled      = data_disk.value.write_accelerator_enabled
     }
   }
-  dynamic "extension" {
+  /*dynamic "extension" {
+    # for_each = toset([for k, v in nonsensitive(var.extensions) : k])
     for_each = var.extension == null ? [] : var.extension
     content {
       name                                      = extension.value.name
@@ -73,6 +74,28 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
         content {
           secret_url      = protected_settings_from_key_vault.value.secret_url
           source_vault_id = protected_settings_from_key_vault.value.source_vault_id
+        }
+      }
+    }
+  } */
+  dynamic "extension" {
+    for_each = var.extension != [] ? ([for k, v in nonsensitive(var.extension) : k]) : []
+    content {
+      name                                      = var.extension[each.key].name
+      publisher                                 = var.extension[each.key].publisher
+      type                                      = var.extension[each.key].type
+      type_handler_version                      = var.extension[each.key].type_handler_version
+      auto_upgrade_minor_version_enabled        = var.extension[each.key].auto_upgrade_minor_version_enabled
+      extensions_to_provision_after_vm_creation = var.extension[each.key].extensions_to_provision_after_vm_creation
+      failure_suppression_enabled               = var.extension[each.key].failure_suppression_enabled
+      force_extension_execution_on_change       = var.extension[each.key].force_extension_execution_on_change
+      protected_settings                        = var.extension[each.key].protected_settings
+      settings                                  = var.extension[each.key].settings
+      dynamic "protected_settings_from_key_vault" {
+        for_each = var.extension[extension.key].protected_settings_from_key_vault != null ? [extension.key] : []
+        content {
+            secret_url      = var.extension[extension.key].protected_settings_from_key_vault.secret_url
+            source_vault_id = var.extension[extension.key].protected_settings_from_key_vault.source_vault_id
         }
       }
     }
@@ -155,7 +178,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
         for_each = os_profile.value.linux_configuration == null ? [] : [os_profile.value.linux_configuration]
         content {
           admin_username                  = linux_configuration.value.admin_username
-          admin_password                  = linux_configuration.value.admin_password
+          admin_password                  = var.admin_password
           computer_name_prefix            = linux_configuration.value.computer_name_prefix
           disable_password_authentication = linux_configuration.value.disable_password_authentication
           patch_assessment_mode           = linux_configuration.value.patch_assessment_mode
@@ -187,8 +210,8 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
       dynamic "windows_configuration" {
         for_each = os_profile.value.windows_configuration == null ? [] : [os_profile.value.windows_configuration]
         content {
-          admin_password           = windows_configuration.value.admin_password
           admin_username           = windows_configuration.value.admin_username
+          admin_password           = var.admin_password
           computer_name_prefix     = windows_configuration.value.computer_name_prefix
           enable_automatic_updates = windows_configuration.value.enable_automatic_updates
           hotpatching_enabled      = windows_configuration.value.hotpatching_enabled

@@ -38,6 +38,13 @@ variable "additional_capabilities" {
 EOT
 }
 
+variable "admin_password" {
+  type = string
+  default = null
+  description = "(Optional) Sets the VM password"
+  sensitive = true
+}
+
 variable "automatic_instance_repair" {
   type = object({
     enabled      = bool
@@ -191,7 +198,8 @@ variable "extension" {
       source_vault_id = string
     }))
   }))
-  default     = null
+  sensitive   = true # for protected settings
+  default     = []
   description = <<-EOT
  - `auto_upgrade_minor_version_enabled` - (Optional) Should the latest version of the Extension be used at Deployment Time, if one is available? This won't auto-update the extension on existing installation. Defaults to `true`.
  - `extensions_to_provision_after_vm_creation` - (Optional) An ordered list of Extension names which Orchestrated Virtual Machine Scale Set should provision after VM creation.
@@ -460,7 +468,6 @@ variable "os_profile" {
   type = object({
     custom_data = optional(string)
     linux_configuration = optional(object({
-      admin_password                  = optional(string)
       admin_username                  = string
       computer_name_prefix            = optional(string)
       disable_password_authentication = optional(bool)
@@ -479,7 +486,6 @@ variable "os_profile" {
       })))
     }))
     windows_configuration = optional(object({
-      admin_password           = string
       admin_username           = string
       computer_name_prefix     = optional(string)
       enable_automatic_updates = optional(bool)

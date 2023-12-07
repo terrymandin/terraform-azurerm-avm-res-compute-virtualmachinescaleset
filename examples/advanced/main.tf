@@ -3,7 +3,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.7.0, < 4.0.0"
+      version = ">= 3.83, < 4.0"
     }
   }
 }
@@ -115,10 +115,11 @@ resource "azurerm_proximity_placement_group" "this" {
 module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   source = "../../"
   # source             = "Azure/avm-res-compute-virtualmachinescaleset/azurerm"
-  name                        = module.naming.virtual_machine_scale_set.name_unique
+  name                        = module.naming.virtual_machine_scale_set.name_unique 
   resource_group_name         = azurerm_resource_group.this.name
   enable_telemetry            = var.enable_telemetry
   location                    = azurerm_resource_group.this.location
+  admin_password              = "P@ssw0rd1234!"
   platform_fault_domain_count = 1
   # Spot variables
   priority      = "Spot"
@@ -134,6 +135,7 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   eviction_policy = "Deallocate"
   # Instance Placement
   zone_balance                 = true
+  zones                        = [ "1" ]
   proximity_placement_group_id = azurerm_proximity_placement_group.this.id
   single_placement_group       = true
   # Miscellanous settings
@@ -179,7 +181,7 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
       disable_password_authentication = false
       user_data_base64                = base64encode(file("user-data.sh"))
       admin_username                  = "azureuser"
-      admin_password                  = "P@ssw0rd1234!"
+      # admin_password                  = "P@ssw0rd1234!"
       computer_name_prefix            = "prefix"
       provision_vm_agent              = true
       admin_ssh_key = toset([{
