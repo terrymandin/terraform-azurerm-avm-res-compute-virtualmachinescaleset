@@ -134,14 +134,14 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   }
   eviction_policy = "Deallocate"
   # Instance Placement
-  zone_balance                 = true
+  zone_balance                 = false
   zones                        = [ "1" ]
   proximity_placement_group_id = azurerm_proximity_placement_group.this.id
   single_placement_group       = true
   # Miscellanous settings
   encryption_at_host_enabled = true
   automatic_instance_repair = {
-    enabled = true
+    enabled = false
   }
   boot_diagnostics = {
     storage_uri = azurerm_storage_account.this.primary_blob_endpoint
@@ -165,17 +165,25 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   }]
   # Extensions
   extension = [{
-    name                       = "Custom Script Extension"
-    publisher                  = "Microsoft.Azure.Extensions"
-    type                       = "CustomScript"
-    type_handler_version       = "2.0"
-    auto_upgrade_minor_version = true
-    settings                   = <<SETTINGS
-    {
-      "commandToExecute": "echo 'Hello World!' > /tmp/hello.txt"
-    }
-    SETTINGS
+      name                       = "Custom Script Extension"
+      publisher                  = "Microsoft.Azure.Extensions"
+      type                       = "CustomScript"
+      type_handler_version       = "2.0"
+      auto_upgrade_minor_version = true
+      settings                   = <<SETTINGS
+      {
+        "commandToExecute": "echo 'Hello World!' > /tmp/hello.txt"
+      }
+      SETTINGS
   }]
+  # Extension protected settings
+  extension_protected_setting = {
+    "Custom Script Extension" = <<SETTINGS
+      {
+        "commandToExecute": "echo 'Protected Hello World!' > /tmp/protectedhello.txt"
+      }
+      SETTINGS
+  }
   os_profile = {
     linux_configuration = {
       disable_password_authentication = false
@@ -184,10 +192,7 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
       # admin_password                  = "P@ssw0rd1234!"
       computer_name_prefix            = "prefix"
       provision_vm_agent              = true
-      admin_ssh_key = toset([{
-        username   = "azureuser"
-        public_key = tls_private_key.example_ssh.public_key_openssh
-      }])
+      admin_ssh_key = toset([ tls_private_key.example_ssh.id ])
     }
   }
   source_image_reference = {

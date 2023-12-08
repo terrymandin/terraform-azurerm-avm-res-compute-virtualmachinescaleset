@@ -111,6 +111,7 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   enable_telemetry            = var.enable_telemetry
   location                    = azurerm_resource_group.this.location
   platform_fault_domain_count = 1
+  admin_password              = "P@ssw0rd1234!"
   network_interface = [{
     name = "VMSS-NIC"
     ip_configuration = [{
@@ -123,7 +124,6 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
       disable_password_authentication = false
       user_data_base64                = base64encode(file("user-data.sh"))
       admin_username                  = "azureuser"
-      admin_password                  = "P@ssw0rd1234!"
       admin_ssh_key = [{
         username   = "azureuser"
         public_key = tls_private_key.example_ssh.public_key_openssh

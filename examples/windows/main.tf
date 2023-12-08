@@ -95,6 +95,7 @@ resource "tls_private_key" "example_ssh" {
 module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
   source = "../../"
   # source             = "Azure/avm-res-compute-virtualmachinescaleset/azurerm"
+  admin_password              = "P@ssw0rd1234!"
   name                        = module.naming.virtual_machine_scale_set.name_unique
   resource_group_name         = azurerm_resource_group.this.name
   enable_telemetry            = var.enable_telemetry
@@ -111,7 +112,6 @@ module "terraform-azurerm-avm-res-compute-virtualmachinescaleset" {
     windows_configuration = {
       disable_password_authentication = false
       admin_username                  = "azureuser"
-      admin_password                  = "P@ssw0rd1234!"
       license_type                    = "None"
       # hotpatching_enabled             = true
       patch_assessment_mode = "ImageDefault"

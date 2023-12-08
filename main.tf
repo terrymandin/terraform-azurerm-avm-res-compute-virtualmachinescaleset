@@ -54,8 +54,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
       write_accelerator_enabled      = data_disk.value.write_accelerator_enabled
     }
   }
-  /*dynamic "extension" {
-    # for_each = toset([for k, v in nonsensitive(var.extensions) : k])
+  dynamic "extension" {
     for_each = var.extension == null ? [] : var.extension
     content {
       name                                      = extension.value.name
@@ -66,7 +65,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
       extensions_to_provision_after_vm_creation = extension.value.extensions_to_provision_after_vm_creation
       failure_suppression_enabled               = extension.value.failure_suppression_enabled
       force_extension_execution_on_change       = extension.value.force_extension_execution_on_change
-      protected_settings                        = extension.value.protected_settings
+      protected_settings                        = lookup(var.extension_protected_setting, extension.value.name, null)
       settings                                  = extension.value.settings
 
       dynamic "protected_settings_from_key_vault" {
@@ -77,29 +76,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
         }
       }
     }
-  } */
-  dynamic "extension" {
-    for_each = var.extension != [] ? ([for k, v in nonsensitive(var.extension) : k]) : []
-    content {
-      name                                      = var.extension[each.key].name
-      publisher                                 = var.extension[each.key].publisher
-      type                                      = var.extension[each.key].type
-      type_handler_version                      = var.extension[each.key].type_handler_version
-      auto_upgrade_minor_version_enabled        = var.extension[each.key].auto_upgrade_minor_version_enabled
-      extensions_to_provision_after_vm_creation = var.extension[each.key].extensions_to_provision_after_vm_creation
-      failure_suppression_enabled               = var.extension[each.key].failure_suppression_enabled
-      force_extension_execution_on_change       = var.extension[each.key].force_extension_execution_on_change
-      protected_settings                        = var.extension[each.key].protected_settings
-      settings                                  = var.extension[each.key].settings
-      dynamic "protected_settings_from_key_vault" {
-        for_each = var.extension[extension.key].protected_settings_from_key_vault != null ? [extension.key] : []
-        content {
-            secret_url      = var.extension[extension.key].protected_settings_from_key_vault.secret_url
-            source_vault_id = var.extension[extension.key].protected_settings_from_key_vault.source_vault_id
-        }
-      }
-    }
-  }
+  } 
   dynamic "identity" {
     for_each = var.identity == null ? [] : [var.identity]
     content {
@@ -184,13 +161,12 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "virtual_machine_scale
           patch_assessment_mode           = linux_configuration.value.patch_assessment_mode
           patch_mode                      = linux_configuration.value.patch_mode
           provision_vm_agent              = linux_configuration.value.provision_vm_agent
-
           dynamic "admin_ssh_key" {
-            for_each = linux_configuration.value.admin_ssh_key == null ? [] : linux_configuration.value.admin_ssh_key
-            content {
-              public_key = admin_ssh_key.value.public_key
-              username   = admin_ssh_key.value.username
-            }
+            for_each = linux_configuration.value.admin_ssh_key_id == null ? [] : linux_configuration.value.admin_ssh_key_id
+              content {
+                public_key = var.admin_ssh_keys[each.key].public_key
+                username   = var.admin_ssh_keys[each.key].username
+              }
           }
           dynamic "secret" {
             for_each = linux_configuration.value.secret == null ? [] : linux_configuration.value.secret

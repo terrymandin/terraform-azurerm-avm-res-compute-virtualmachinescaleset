@@ -84,7 +84,7 @@ EOT
 }
 
 variable "data_disk" {
-  type = list(object({
+  type = set(object({
     caching                        = string
     create_option                  = optional(string)
     disk_encryption_set_id         = optional(string)
@@ -181,14 +181,14 @@ variable "eviction_policy" {
   }
 }
 
+
 variable "extension" {
   type = set(object({
     auto_upgrade_minor_version_enabled        = optional(bool)
-    extensions_to_provision_after_vm_creation = optional(list(string))
+    extensions_to_provision_after_vm_creation = optional(set(string))
     failure_suppression_enabled               = optional(bool)
     force_extension_execution_on_change       = optional(string)
     name                                      = string
-    protected_settings                        = optional(string)
     publisher                                 = string
     settings                                  = optional(string)
     type                                      = string
@@ -198,19 +198,17 @@ variable "extension" {
       source_vault_id = string
     }))
   }))
-  sensitive   = true # for protected settings
-  default     = []
+  default     = null
   description = <<-EOT
  - `auto_upgrade_minor_version_enabled` - (Optional) Should the latest version of the Extension be used at Deployment Time, if one is available? This won't auto-update the extension on existing installation. Defaults to `true`.
- - `extensions_to_provision_after_vm_creation` - (Optional) An ordered list of Extension names which Orchestrated Virtual Machine Scale Set should provision after VM creation.
+ - `extensions_to_provision_after_vm_creation` - (Optional) An set of Extension names which Orchestrated Virtual Machine Scale Set should provision after VM creation.
  - `failure_suppression_enabled` - (Optional) Should failures from the extension be suppressed? Possible values are `true` or `false`.
 
 > Note: Operational failures such as not connecting to the VM will not be suppressed regardless of the `failure_suppression_enabled` value.
 
  - `force_extension_execution_on_change` - (Optional) A value which, when different to the previous value can be used to force-run the Extension even if the Extension Configuration hasn't changed.
  - `name` - (Required) The name for the Virtual Machine Scale Set Extension.
- - `protected_settings` - (Optional) A JSON String which specifies Sensitive Settings (such as Passwords) for the Extension.
- 
+  
  > Note: Keys within the `protected_settings` block are notoriously case-sensitive, where the casing required (e.g. TitleCase vs snakeCase) depends on the Extension being used. Please refer to the documentation for the specific Orchestrated Virtual Machine Extension you're looking to use for more information.
 
  - `publisher` - (Required) Specifies the Publisher of the Extension.
@@ -226,15 +224,13 @@ variable "extension" {
 > Note: `protected_settings_from_key_vault` cannot be used with `protected_settings`
 
 EOT
+}
 
-  validation {
-    condition = var.extension == null ? true : alltrue([
-      for ext in var.extension : alltrue([
-        ext.protected_settings == null || ext.protected_settings_from_key_vault == null ? true : false
-      ])
-    ])
-    error_message = "`protected_settings_from_key_vault` cannot be used with `protected_settings`."
-  }
+variable "extension_protected_setting" {
+  type = map(string)
+  sensitive = true
+  default = null
+  description = "(Optional) A JSON String which specifies Sensitive Settings (such as Passwords) for the Extension."
 }
 
 variable "extension_operations_enabled" {
@@ -259,7 +255,7 @@ variable "identity" {
   })
   default     = null
   description = <<-EOT
- - `identity_ids` - (Required) Specifies a list of User Managed Identity IDs to be assigned to this Orchestrated Windows Virtual Machine Scale Set.
+ - `identity_ids` - (Required) Specifies a set of User Managed Identity IDs to be assigned to this Orchestrated Windows Virtual Machine Scale Set.
  - `type` - (Required) The type of Managed Identity that should be configured on this Orchestrated Windows Virtual Machine Scale Set. Only possible value is `UserAssigned`.
 EOT
 
@@ -317,14 +313,14 @@ variable "max_bid_price" {
 }
 
 variable "network_interface" {
-  type = list(object({
-    dns_servers                   = optional(list(string))
+  type = set(object({
+    dns_servers                   = optional(set(string))
     enable_accelerated_networking = optional(bool)
     enable_ip_forwarding          = optional(bool)
     name                          = string
     network_security_group_id     = optional(string)
     primary                       = optional(bool)
-    ip_configuration = list(object({
+    ip_configuration = set(object({
       application_gateway_backend_address_pool_ids = optional(set(string))
       application_security_group_ids               = optional(set(string))
       load_balancer_backend_address_pool_ids       = optional(set(string))
@@ -332,14 +328,14 @@ variable "network_interface" {
       primary                                      = optional(bool)
       subnet_id                                    = optional(string)
       version                                      = optional(string)
-      public_ip_address = optional(list(object({
+      public_ip_address = optional(set(object({
         domain_name_label       = optional(string)
         idle_timeout_in_minutes = optional(number)
         name                    = string
         public_ip_prefix_id     = optional(string)
         sku_name                = optional(string)
         version                 = optional(string)
-        ip_tag = optional(list(object({
+        ip_tag = optional(set(object({
           tag  = string
           type = string
         })))
@@ -348,7 +344,7 @@ variable "network_interface" {
   }))
   default     = null
   description = <<-EOT
- - `dns_servers` - (Optional) A list of IP Addresses of DNS Servers which should be assigned to the Network Interface.
+ - `dns_servers` - (Optional) A set of IP Addresses of DNS Servers which should be assigned to the Network Interface.
  - `enable_accelerated_networking` - (Optional) Does this Network Interface support Accelerated Networking? Possible values are `true` and `false`. Defaults to `false`.
  - `enable_ip_forwarding` - (Optional) Does this Network Interface support IP Forwarding? Possible values are `true` and `false`. Defaults to `false`.
  - `name` - (Required) The Name which should be used for this Network Interface. Changing this forces a new resource to be created.
@@ -357,9 +353,9 @@ variable "network_interface" {
 
  ---
  `ip_configuration` block supports the following:
- - `application_gateway_backend_address_pool_ids` - (Optional) A list of Backend Address Pools IDs from a Application Gateway which this Orchestrated Virtual Machine Scale Set should be connected to.
- - `application_security_group_ids` - (Optional) A list of Application Security Group IDs which this Orchestrated Virtual Machine Scale Set should be connected to.
- - `load_balancer_backend_address_pool_ids` - (Optional) A list of Backend Address Pools IDs from a Load Balancer which this Orchestrated Virtual Machine Scale Set should be connected to.
+ - `application_gateway_backend_address_pool_ids` - (Optional) A set of Backend Address Pools IDs from a Application Gateway which this Orchestrated Virtual Machine Scale Set should be connected to.
+ - `application_security_group_ids` - (Optional) A set of Application Security Group IDs which this Orchestrated Virtual Machine Scale Set should be connected to.
+ - `load_balancer_backend_address_pool_ids` - (Optional) A set of Backend Address Pools IDs from a Load Balancer which this Orchestrated Virtual Machine Scale Set should be connected to.
 
 > Note: When using this field you'll also need to configure a Rule for the Load Balancer, and use a depends_on between this resource and the Load Balancer Rule.
 
@@ -464,6 +460,23 @@ EOT
   }
 }
 
+variable "admin_ssh_keys" {
+  type = set(object({
+    id         = string
+    public_key = string
+    username   = string
+  }))
+  default = null
+  sensitive = true
+  description = <<-EOT
+(Optional) SSH Keys to be used for Linx instances
+- Unique id.  Referenced in the `os_profile` below
+- (Required) The Public Key which should be used for authentication, which needs to be at least 2048-bit and in ssh-rsa format.
+- (Required) The Username for which this Public SSH Key should be configured.
+EOT
+}
+
+
 variable "os_profile" {
   type = object({
     custom_data = optional(string)
@@ -474,11 +487,8 @@ variable "os_profile" {
       patch_assessment_mode           = optional(string)
       patch_mode                      = optional(string)
       provision_vm_agent              = optional(bool)
-      admin_ssh_key = optional(set(object({
-        public_key = string
-        username   = string
-      })))
-      secret = optional(list(object({
+      admin_ssh_key_id                = optional(set(string))
+      secret = optional(set(object({
         key_vault_id = string
         certificate = set(object({
           url = string
@@ -494,7 +504,7 @@ variable "os_profile" {
       patch_mode               = optional(string)
       provision_vm_agent       = optional(bool)
       timezone                 = optional(string)
-      secret = optional(list(object({
+      secret = optional(set(object({
         key_vault_id = string
         certificate = set(object({
           store = string
@@ -517,7 +527,6 @@ Configure the operating system provile.
 
  ---
  `linux_configuration` block supports the following:
- - `admin_password` - (Optional) The Password which should be used for the local-administrator on this Virtual Machine. Changing this forces a new resource to be created.
  - `admin_username` - (Required) The username of the local administrator on each Orchestrated Virtual Machine Scale Set instance. Changing this forces a new resource to be created.
  - `computer_name_prefix` - (Optional) The prefix which should be used for the name of the Virtual Machines in this Scale Set. If unspecified this defaults to the value for the name field. If the value of the name field is not a valid `computer_name_prefix`, then you must specify `computer_name_prefix`. Changing this forces a new resource to be created.
  - `disable_password_authentication` - (Optional) When an `admin_password` is specified `disable_password_authentication` must be set to `false`. Defaults to `true`.
@@ -535,10 +544,8 @@ Configure the operating system provile.
  - `provision_vm_agent` - (Optional) Should the Azure VM Agent be provisioned on each Virtual Machine in the Scale Set? Defaults to `true`. Changing this value forces a new resource to be created.
 
  ---
- `admin_ssh_key` block supports the following:
- - `public_key` - (Required) The Public Key which should be used for authentication, which needs to be at least 2048-bit and in ssh-rsa format.
- - `username` - (Required) The Username for which this Public SSH Key should be configured.
-
+ `admin_ssh_key_id` Set of ids which reference the `admin_ssh_keys` sensitive variable
+ 
  > Note: The Azure VM Agent only allows creating SSH Keys at the path `/home/{username}/.ssh/authorized_keys` - as such this public key will be written to the authorized keys file.
 
  ---
@@ -553,7 +560,6 @@ Configure the operating system provile.
 
 ---
  `windows_configuration` block supports the following:
- - `admin_password` - (Required) The Password which should be used for the local-administrator on this Virtual Machine. Changing this forces a new resource to be created.
  - `admin_username` - (Required) The username of the local administrator on each Orchestrated Virtual Machine Scale Set instance. Changing this forces a new resource to be created.
  - `computer_name_prefix` - (Optional) The prefix which should be used for the name of the Virtual Machines in this Scale Set. If unspecified this defaults to the value for the `name` field. If the value of the `name` field is not a valid `computer_name_prefix`, then you must specify `computer_name_prefix`. Changing this forces a new resource to be created.
  - `enable_automatic_updates` - (Optional) Are automatic updates enabled for this Virtual Machine? Defaults to `true`.
